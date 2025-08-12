@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TM-RoBo風 商標検索シミュレーター（擬似UI）v6</title>
+  <style>
+    :root{
+      --bg:#f7f7fb;--card:#ffffff;--ink:#1f2937;--muted:#6b7280;--accent:#2563eb;--accent-weak:#dbeafe;--border:#e5e7eb;--ok:#16a34a;--warn:#b45309;--danger:#dc2626;
+      --radius:16px;--shadow:0 8px 24px rgba(0,0,0,.06);
+    }
+    html,body{height:100%;}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic UI',sans-serif;}
+    .container{max-width:1180px;margin:32px auto;padding:0 16px;}
+    .header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:20px;}
+    .title{font-weight:800;letter-spacing:.2px;}
+    .subtitle{color:var(--muted);font-size:.95rem;}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);}
+    .grid{display:grid;gap:16px;}
+    @media(min-width:1000px){.grid.cols-2{grid-template-columns:1.05fr .95fr;}}
+    .pad{padding:20px;}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+    label{font-weight:600;}
+    input[type="text"], textarea, select{
+      width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--ink);font-size:16px;outline:none;box-sizing:border-box;
+    }
+    textarea{min-height:88px;resize:vertical;}
+    .radio{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+    .btn{appearance:none;border:none;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);}
+    .btn:disabled{opacity:.5;cursor:not-allowed;}
+    .btn-primary{background:var(--accent);color:#fff;}
+    .btn-ghost{background:#fff;border:1px solid var(--border);}
+    .btn-outline{background:transparent;border:1px solid var(--accent);color:var(--accent);}    
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;}
+    .badge{font-size:.8rem;padding:4px 8px;border-radius:999px;background:var(--accent-weak);color:var(--accent);border:1px solid var(--border);}    
+    .muted{color:var(--muted);}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;}
+    th{background:#fbfdff;font-weight:700;}
+    .kicker{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;}
+    .section-title{margin:0 0 8px;font-size:1.1rem;}
+    .hint{font-size:.9rem;color:var(--muted);}    
+    .footer{margin:24px 0 8px;color:var(--muted);font-size:.9rem;}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;}
+    .history{max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:12px;}
+    .code{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;background:#f4f6fa;border:1px solid var(--border);padding:8px 10px;border-radius:8px;}
+    .callout{border-left:4px solid var(--warn);background:#fff7ed;padding:12px 14px;border-radius:10px;border:1px solid #fde68a;}
+    .consult{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;}
+    .pill-ok{border-color:#86efac;background:#f0fdf4;color:#166534;}
+    .pill-no{border-color:#fecaca;background:#fff1f2;color:#7f1d1d;}
+    .summary{display:grid;gap:10px;margin:8px 0 14px;}
+    @media(min-width:900px){.summary{grid-template-columns:repeat(3,1fr);}}
+    .card-mini{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;}
+    .score{font-size:1.6rem;font-weight:800;}
+    .good{color:#166534;} .mid{color:#92400e;} .bad{color:#991b1b;}
+    .emailbox{margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;}
+    .emailgrid{display:grid;gap:8px;}
+    @media(min-width:900px){.emailgrid{grid-template-columns:.15fr .85fr;} .emailgrid label{align-self:center;}}
+    .copyrow{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;}
+    .small{font-size:.85rem;color:var(--muted);}
+    .tbl-note{font-size:.85rem;color:var(--muted);}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="kicker">Browser Demo</div>
+        <h1 class="title">TM-RoBo風 商標検索シミュレーター（擬似UI）v6</h1>
+        <div class="subtitle">※ 教育・検討用のスタンドアロン擬似ツール。実データベース照会は行いません。</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-ghost" id="btnExport" title="JSONに書き出し">JSONエクスポート</button>
+        <button class="btn btn-ghost" id="btnImport" title="JSONを読み込み">JSONインポート</button>
+        <button class="btn btn-outline" onclick="window.print()" title="印刷">印刷</button>
+        <input type="file" id="fileImport" style="display:none" accept="application/json" />
+      </div>
+    </div>
+
+    <div class="grid cols-2">
+      <section class="card pad">
+        <h2 class="section-title">① 入力（擬似フォーム）</h2>
+        <p class="hint">以下に入力し、<strong>商標分割</strong>または<strong>検索実行</strong>を押してください。</p>
+        <div class="row">
+          <label for="tm">商標名</label>
+          <input id="tm" type="text" placeholder="例：Carbon＋ / AURA LIFT / 綺麗手" />
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <label for="gs">指定商品・役務</label>
+          <textarea id="gs" placeholder="例：ハンドケア、美容施術"></textarea>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <label>商品 / 役務</label>
+          <div class="radio">
+            <label><input type="radio" name="type" value="goods" /> 商品</label>
+            <label><input type="radio" name="type" value="services" checked /> 役務</label>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <label>商標分割の有無</label>
+          <div class="radio">
+            <label><input type="radio" name="splitopt" value="do" checked /> 実行する</label>
+            <label><input type="radio" name="splitopt" value="dont" /> 実行しない</label>
+          </div>
+        </div>
+        <div class="row" style="margin-top:14px;">
+          <button class="btn btn-ghost" id="btnSplit">商標分割</button>
+          <button class="btn btn-primary" id="btnSearch">検索実行</button>
+          <button class="btn" id="btnReset" style="margin-left:auto;">リセット</button>
+        </div>
+        <div style="margin-top:14px;" class="hint">ヒント：一般語（例：キレイ、ビューティー）を多用すると識別力が弱くなる傾向があります。</div>
+      </section>
+
+      <section class="card pad">
+        <h2 class="section-title">② ガイダンス</h2>
+        <div id="guidance" class="hint">操作の流れ：<span class="badge">商標分割</span> → <span class="badge">要素別評価</span> → <span class="badge">全体評価</span> → <span class="badge">メール作成</span></div>
+        <div id="callout" class="callout" style="margin-top:10px;display:none"></div>
+      </section>
+    </div>
+
+    <section class="card pad" style="margin-top:16px;">
+      <h2 class="section-title">③ 分析結果（擬似）</h2>
+      <div id="resultEmpty" class="hint">結果はここに表示されます。</div>
+      <div id="results" style="display:none;">
+        <div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <span class="pill" id="pillTrademark">商標：-</span>
+          <span class="pill" id="pillType">種別：-</span>
+          <span class="pill" id="pillClasses">推定区分：-</span>
+          <span class="pill" id="pillSplit" title="商標分割の実行有無">商標分割：未実行</span>
+        </div>
+
+        <div class="summary">
+          <div class="card-mini">
+            <div class="muted">全体オリジナリティ</div>
+            <div id="origScore" class="score mid">-</div>
+          </div>
+          <div class="card-mini">
+            <div class="muted">全体登録可能性</div>
+            <div id="regScore" class="score mid">-</div>
+          </div>
+          <div class="card-mini">
+            <div class="muted">想定リスク</div>
+            <div id="riskLabel">-</div>
+          </div>
+        </div>
+
+        <h3 class="section-title">要素別評価</h3>
+        <div class="tbl-note">※ TM-RoBo風の擬似出力です（実データベース照会は行っていません）。</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:20%">要素</th>
+              <th style="width:15%">近接度（擬似）</th>
+              <th style="width:20%">登録可能性（%）</th>
+              <th>コメント</th>
+            </tr>
+          </thead>
+          <tbody id="elemTable"></tbody>
+        </table>
+
+        <h3 class="section-title" style="margin-top:16px;">全体評価（結合商標）</h3>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:30%">表記</th>
+              <th style="width:15%">近接度（擬似）</th>
+              <th style="width:20%">登録可能性（%）</th>
+              <th>コメント</th>
+            </tr>
+          </thead>
+          <tbody id="combTable"></tbody>
+        </table>
+
+        <h3 class="section-title" style="margin-top:16px;">推奨商標名（参考）</h3>
+        <div id="suggestList" class="hint">-</div>
+
+        <div class="consult">
+          <button class="btn btn-outline" id="btnConsultPreview">専門家に相談（メール作成）</button>
+          <span class="muted small">※ 以下のメール本文をコピーし、ご自身のメーラーに貼り付けて送信してください。</span>
+        </div>
+
+        <div id="emailBox" class="emailbox" style="display:none;">
+          <div class="emailgrid">
+            <label>宛先</label>
+            <div>
+              <input id="emailTo" type="text" value="nakatsuji@nakatsuji-pat.com" />
+              <div class="copyrow"><button class="btn btn-ghost" data-copy="#emailTo">宛先をコピー</button></div>
+            </div>
+            <label>件名</label>
+            <div>
+              <input id="emailSubject" type="text" value="" />
+              <div class="copyrow"><button class="btn btn-ghost" data-copy="#emailSubject">件名をコピー</button></div>
+            </div>
+            <label>本文</label>
+            <div>
+              <textarea id="emailBody" rows="12"></textarea>
+              <div class="copyrow"><button class="btn btn-ghost" data-copy="#emailBody">本文をコピー</button></div>
+              <div class="small">※ メーラー（Outlook, Gmail 等）を開き、宛先/件名/本文を順に貼り付けてください。</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="footer">※ 本ツールは教育用途の擬似シミュレーターです。実務判断は必ず公的DB・専門家見解で検証してください。</div>
+    </section>
+
+    <section class="card pad" style="margin-top:16px;">
+      <h2 class="section-title">④ セッション履歴</h2>
+      <div class="history" id="history"></div>
+    </section>
+
+  </div>
+
+  <script>
+    // ===== ユーティリティ =====
+    const kanaNormalize = (s='') => s
+      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0)-0xFEE0))
+      .replace(/[ァ-ン]/g, ch => String.fromCharCode(ch.charCodeAt(0)-0x60)) // カナ→ひらがな
+      .replace(/[\\s_・\\-―ー]/g, '')
+      .trim();
+
+    const splitMark = (raw='') => {
+      // 記号（+ ＋ & ・ - _ 空白）で分割、英数と記号を分ける
+      const s = raw.trim();
+      const parts = [];
+      let buf = '';
+      for(const ch of s){
+        if(/[+＋&・\\-\\s_]/.test(ch)){
+          if(buf) parts.push(buf);
+          parts.push(ch);
+          buf='';
+        }else{
+          // 文字種が記号かどうかでまとめる
+          buf += ch;
+        }
+      }
+      if(buf) parts.push(buf);
+      // 連続スペース等の掃除
+      return parts.filter(p => p !== '' && p !== ' ');
+    };
+
+    const roughSimilarity = (token='') => {
+      // 擬似「近接度」: 一般語性や短さを考慮し 0-100 で算出
+      const t = token.toLowerCase();
+      let base = 50;
+      if(/^[a-z]{1,3}$/.test(t)) base = 75; // 短い英字は衝突多め
+      if(/^[a-z]{6,}$/.test(t)) base -= 10; // 長い英字は多少まし
+      if(/^[0-9]+$/.test(t)) base = 70;
+      if(/^[+＋&]$/.test(t)) base = 85; // 記号単体は識別力低・衝突多め
+      if(/carbon|beauty|clean|fresh|care|plus|prime|pro|free|best/.test(t)) base += 10; // 一般的語
+      base = Math.max(10, Math.min(95, base));
+      return Math.round(base);
+    };
+
+    const registrabilityFromSimilarity = (sim=50, isSymbol=false) => {
+      // 擬似「登録可能性(%)」: 低い近接度→高い登録可能性。ただし記号は下駄を履かせない
+      let score = 100 - sim;
+      if(isSymbol) score = Math.max(5, score - 20);
+      return Math.max(5, Math.min(95, Math.round(score)));
+    };
+
+    const isSymbolToken = (t='') => /^[+＋&・\\-]$/.test(t);
+
+    const suggestAlternatives = (raw='') => {
+      // 簡易のリネーム提案: 末尾置換、造語化、記号→音写等
+      const base = raw.replace(/[+＋]/g,'プラス').replace(/&/g,'アンド');
+      const variants = [];
+      const stamp = Math.floor(Math.random()*900+100); // 適当な数字接尾
+      variants.push(base + stamp);
+      variants.push(base + 'X');
+      variants.push(base + 'ia');
+      variants.push(base.replace(/carbon/i,'Carbion'));
+      variants.push('Neo ' + base);
+      // ユニーク化
+      return Array.from(new Set(variants)).slice(0,5);
+    };
+
+    const classesHeuristics = (text='', type='services') => {
+      const t = (text||'').toLowerCase();
+      const found = [];
+      const push = (cls,label) => found.push({cls,label});
+      if(/美容|エステ|ハンドケア|マッサージ|リラク|ネイル|サロン/.test(text)) push('第44類','美容・エステ等');
+      if(/飲食|カフェ|レストラン|ケータリング/.test(text)) push('第43類','飲食サービス');
+      if(/教育|セミナー|講座|研修|スクール/.test(text)) push('第41類','教育・娯楽');
+      if(/医療|クリニック|治療|介護|看護/.test(text)) push('第44類','医療・介護');
+      if(/it|アプリ|saas|ソフト|クラウド|ai/i.test(t)) push('第42類','IT・SaaS');
+      if(/化粧|コスメ|美容液|クリーム|シャンプー/.test(text)) push('第3類','化粧品類（商品）');
+      if(/食品|菓子|スナック|飲料|コーヒー|お茶/.test(text)) push('第29類/第30類/第32類','食品・飲料（商品）');
+      if(found.length===0){ push(type==='services' ? '第35類/第44類' : '第1〜34類（要特定）', '一般的候補'); }
+      const unique = []; const seen = new Set();
+      for(const f of found){ if(!seen.has(f.cls)){ unique.push(f); seen.add(f.cls);} }
+      return unique.slice(0,4);
+    };
+
+    const combineScore = (tokens=[]) => {
+      // 各トークンの近接度から全体近接度・登録可能性を擬似算出
+      if(!tokens.length) return {sim:50, reg:50};
+      const sims = tokens.map(t => roughSimilarity(t));
+      // 記号はやや軽く扱う
+      const weights = tokens.map(t => isSymbolToken(t) ? 0.5 : 1.0);
+      const wsum = weights.reduce((a,b)=>a+b,0);
+      const sim = Math.round(sims.reduce((a,s,i)=>a+s*weights[i],0)/wsum);
+      let reg = registrabilityFromSimilarity(sim, false);
+      // トークンの中に極端に一般的なものがあれば上限を下げる
+      if(tokens.some(t => /carbon|beauty|plus|care/i.test(t))) reg = Math.max(15, Math.min(70, reg));
+      return {sim, reg};
+    };
+
+    // ===== DOM参照 & 状態 =====
+    const $ = sel => document.querySelector(sel);
+    let lastSplit = false; // 商標分割の有無
+    let splitOption = "do"; // 入力側の選択値
+
+    const tm = $('#tm');
+    const gs = $('#gs');
+    const btnSplit = $('#btnSplit');
+    const btnSearch = $('#btnSearch');
+    const btnReset = $('#btnReset');
+    const resultEmpty = $('#resultEmpty');
+    const results = $('#results');
+    const pillTrademark = $('#pillTrademark');
+    const pillType = $('#pillType');
+    const pillClasses = $('#pillClasses');
+    const pillSplit = $('#pillSplit');
+    const elemTable = $('#elemTable');
+    const combTable = $('#combTable');
+    const suggestList = $('#suggestList');
+    const origScore = $('#origScore');
+    const regScore = $('#regScore');
+    const riskLabel = $('#riskLabel');
+    const guidance = $('#guidance');
+    const callout = $('#callout');
+    const historyEl = $('#history');
+    const btnExport = $('#btnExport');
+    const btnImport = $('#btnImport');
+    const fileImport = $('#fileImport');
+    const btnConsultPreview = $('#btnConsultPreview');
+    const emailBox = $('#emailBox');
+    const emailTo = $('#emailTo');
+    const emailSubject = $('#emailSubject');
+    const emailBody = $('#emailBody');
+
+    const splitStatus = $('#splitStatus'); // in table (not used in v6 but kept for compatibility)
+
+    const getType = () => (document.querySelector('input[name="type"]:checked')||{}).value||'services';
+    const getSplitOpt = () => (document.querySelector('input[name="splitopt"]:checked')||{}).value||'do';
+
+    const saveHistory = (entry) => {
+      const list = JSON.parse(localStorage.getItem('tmrobo_hist')||'[]');
+      list.unshift({...entry, ts: new Date().toISOString()});
+      localStorage.setItem('tmrobo_hist', JSON.stringify(list.slice(0,50)));
+      renderHistory();
+    };
+
+    const renderHistory = () => {
+      const list = JSON.parse(localStorage.getItem('tmrobo_hist')||'[]');
+      if(!list.length){ historyEl.innerHTML = '<div class="hint" style="padding:10px;">履歴はまだありません。</div>'; return; }
+      const rows = list.map(it=>`
+        <div style="display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid var(--border);">
+          <div style="flex:1;">
+            <div style="font-weight:700">${it.tm||'-'} <span class="muted" style="font-weight:400">(${it.type==='services'?'役務':'商品'})</span></div>
+            <div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.gs||''}</div>
+            <div class="muted" style="font-size:.8rem;">${new Date(it.ts).toLocaleString('ja-JP')}</div>
+          </div>
+          <button class="btn btn-ghost" onclick='loadHist(${JSON.stringify(it).replace(/'/g,"&#39;")})'>再表示</button>
+        </div>
+      `).join('');
+      historyEl.innerHTML = rows;
+    };
+
+    window.loadHist = (it) => {
+      tm.value = it.tm; gs.value = it.gs;
+      document.querySelector(`input[name="type"][value="${it.type}"]`).checked = true;
+      lastSplit = true;
+      runSearch(true);
+      callout.style.display='block';
+      callout.textContent = '過去履歴を再表示しました。内容を編集して再検索できます。';
+    };
+
+    const setSplitIndicators = () => {
+      if(lastSplit){
+        pillSplit.textContent = '商標分割：実行済み';
+        pillSplit.classList.add('pill-ok'); pillSplit.classList.remove('pill-no');
+      }else{
+        pillSplit.textContent = '商標分割：未実行';
+        pillSplit.classList.add('pill-no'); pillSplit.classList.remove('pill-ok');
+      }
+    };
+
+    const renderResults = (payload) => {
+      resultEmpty.style.display='none';
+      results.style.display='block';
+
+      setSplitIndicators();
+
+      pillTrademark.textContent = `商標：${payload.raw || '-'}`;
+      pillType.textContent = `種別：${payload.type==='services'?'役務':'商品'}`;
+      pillClasses.textContent = `推定区分：${payload.classes.map(c=>c.cls).join(' / ')}`;
+
+      // 要素別
+      elemTable.innerHTML = payload.tokens.map(t => {
+        const sim = roughSimilarity(t);
+        const reg = registrabilityFromSimilarity(sim, isSymbolToken(t));
+        const cmt = isSymbolToken(t) ? '記号単体は識別力が弱く、単独では保護範囲が限定的' :
+                  /carbon/i.test(t) ? '一般語的要素（化学用語）で混在度が高め' :
+                  t.length <= 3 ? '短い語は衝突可能性が高め' : '造語性が一定程度あり';
+        return `<tr>
+          <td><span class="badge">${t}</span></td>
+          <td>${sim}</td>
+          <td>${reg}</td>
+          <td>${cmt}</td>
+        </tr>`;
+      }).join('');
+
+      // 全体（完全一致）
+      const comb = combineScore(payload.tokens);
+      combTable.innerHTML = `<tr>
+        <td><span class="badge">${payload.raw}</span></td>
+        <td>${comb.sim}</td>
+        <td>${comb.reg}</td>
+        <td>${payload.tokens.some(isSymbolToken) ? '記号結合により識別力は限定的。図形化や独自語の付加で改善可' : '語構成の独自性を高めるとより安全'}</td>
+      </tr>`;
+
+      // サマリーカード
+      const orig = Math.max(5, 100 - comb.sim);
+      origScore.textContent = `${orig}`;
+      regScore.textContent = `${comb.reg}`;
+      riskLabel.textContent = comb.reg >= 70 ? '低' : comb.reg >= 40 ? '中' : '高';
+      origScore.className = `score ${orig>=70?'good':orig>=40?'mid':'bad'}`;
+      regScore.className = `score ${comb.reg>=70?'good':comb.reg>=40?'mid':'bad'}`;
+
+      // 推奨案
+      const sug = suggestAlternatives(payload.raw);
+      suggestList.innerHTML = sug.map(s => `<span class="badge" style="margin-right:6px;">${s}</span>`).join(' ');
+
+      guidance.textContent = '擬似評価を表示しました。必要に応じて表現を調整し、正式調査へ進んでください。';
+
+      // メールプレビューを最新化
+      btnConsultPreview.onclick = () => {
+        const subject = `【相談】商標「${payload.raw}」の擬似検索結果について`;
+        const lines = [
+          "中辻特許事務所　中辻先生",
+          "",
+          "以下の商標について相談させてください。",
+          "",
+          `■ 商標名：${payload.raw}`,
+          `■ 種別：${payload.type==='services'?'役務':'商品'}`,
+          `■ 指定商品・役務：${payload.gs || '(未入力)'}`,
+          `■ 商標分割：${lastSplit ? '実行済み' : '未実行'}`,
+          "",
+          "▼ 要素別評価",
+          ...payload.tokens.map(t => {
+            const sim = roughSimilarity(t);
+            const reg = registrabilityFromSimilarity(sim, isSymbolToken(t));
+            return `   - ${t}：近接度 ${sim} / 登録可能性 ${reg}%`;
+          }),
+          "",
+          "▼ 全体評価",
+          `   - ${payload.raw}：近接度 ${comb.sim} / 登録可能性 ${comb.reg}%`,
+          "",
+          `推定区分：${payload.classes.map(c=>c.cls).join(' / ') || '-'}`,
+          `参考案：${suggestAlternatives(payload.raw).join(' , ')}`,
+          "",
+          `作成日時：${new Date().toLocaleString('ja-JP')}`,
+          "",
+          "ご確認のほど、よろしくお願いいたします。"
+        ];
+        emailBox.style.display = 'block';
+        emailTo.value = 'nakatsuji@nakatsuji-pat.com';
+        emailSubject.value = subject;
+        emailBody.value = lines.join('\\r\\n');
+        window.scrollTo({ top: emailBox.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+      };
+    };
+
+    const runSplit = () => {
+      const val = tm.value.trim();
+      if(!val){
+        callout.style.display='block';
+        callout.textContent = '商標名を入力してください。';
+        return;
+      }
+      lastSplit = true;
+      callout.style.display='block';
+      callout.textContent = '商標構成要素の擬似分割を実行しました。次に「検索実行」を押してください。';
+      // 分割結果自体は runSearch 側で表示（整合のため）
+    };
+
+    const runSearch = (skipSave=false) => {
+      const raw = tm.value.trim();
+      const txt = gs.value.trim();
+      if(!raw){ callout.style.display='block'; callout.textContent='商標名を入力してください。'; return; }
+      const type = getType();
+      splitOption = getSplitOpt();
+      if(splitOption === 'dont'){ lastSplit = false; }
+      else if(splitOption === 'do' && !lastSplit){ lastSplit = true; }
+
+      // 分割
+      const tokens = lastSplit ? splitMark(raw) : [raw];
+      const classes = classesHeuristics(txt||raw, type);
+
+      const payload = { raw, gs:txt, type, tokens, classes };
+      renderResults(payload);
+
+      callout.style.display='none';
+      if(!skipSave) saveHistory({tm:raw, gs:txt, type});
+    };
+
+    const resetAll = () => {
+      tm.value=''; gs.value='';
+      document.querySelector('input[name="type"][value="services"]').checked = true;
+      document.querySelector('input[name="splitopt"][value="do"]').checked = true;
+      results.style.display='none'; resultEmpty.style.display='block';
+      callout.style.display='none';
+      lastSplit = false;
+      setSplitIndicators();
+      emailBox.style.display='none';
+      guidance.innerHTML = '操作の流れ：<span class="badge">商標分割</span> → <span class="badge">要素別評価</span> → <span class="badge">全体評価</span> → <span class="badge">メール作成</span>';
+    };
+
+    // JSON入出力
+    btnExport.addEventListener('click', ()=>{
+      const data = localStorage.getItem('tmrobo_hist')||'[]';
+      const blob = new Blob([data], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'tmrobo_history.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+    btnImport.addEventListener('click', ()=> fileImport.click());
+    fileImport.addEventListener('change', (e)=>{
+      const file = e.target.files?.[0]; if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{ try{ localStorage.setItem('tmrobo_hist', reader.result); renderHistory(); alert('履歴を読み込みました。'); }catch(err){ alert('読み込みに失敗しました。'); } };
+      reader.readAsText(file);
+    });
+
+    // コピー機能（宛先/件名/本文）
+    document.addEventListener('click', (e)=>{
+      const el = e.target.closest('button[data-copy]');
+      if(!el) return;
+      const sel = el.getAttribute('data-copy');
+      const target = document.querySelector(sel);
+      if(!target) return;
+      const text = target.value || target.textContent || '';
+      if(navigator.clipboard){
+        navigator.clipboard.writeText(text).then(()=>{ el.textContent='コピー済み'; setTimeout(()=>el.textContent=el.textContent.replace('コピー済み','コピー'),1500); });
+      }else{
+        target.select(); document.execCommand('copy'); el.textContent='コピー済み'; setTimeout(()=>el.textContent='コピー',1500);
+      }
+    });
+
+    // イベント
+    btnSplit.addEventListener('click', runSplit);
+    btnSearch.addEventListener('click', runSearch);
+    btnReset.addEventListener('click', resetAll);
+
+    // 初期化
+    renderHistory();
+    setSplitIndicators();
+  </script>
+</body>
+</html>
